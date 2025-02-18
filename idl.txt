@@ -1,0 +1,39 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+contract ProgramRegistry {
+    struct Program {
+        string name;
+        string idlUrl;
+        uint256 version;
+        address owner;
+    }
+    
+    mapping(bytes32 => Program) public programs;
+    
+    event ProgramRegistered(bytes32 indexed programId, string name, string idlUrl, uint256 version, address owner);
+    event ProgramUpdated(bytes32 indexed programId, string idlUrl, uint256 version);
+    
+    modifier onlyOwner(bytes32 programId) {
+        require(msg.sender == programs[programId].owner, "Not the owner");
+        _;
+    }
+    
+    function registerProgram(string memory name, string memory idlUrl) external {
+        bytes32 programId = keccak256(abi.encodePacked(name, msg.sender));
+        require(programs[programId].owner == address(0), "Program already exists");
+        
+        programs[programId] = Program(name, idlUrl, 1, msg.sender);
+        emit ProgramRegistered(programId, name, idlUrl, 1, msg.sender);
+    }
+    
+    function updateProgram(bytes32 programId, string memory idlUrl) external onlyOwner(programId) {
+        programs[programId].idlUrl = idlUrl;
+        programs[programId].version++;
+        emit ProgramUpdated(programId, idlUrl, programs[programId].version);
+    }
+    
+    function getProgram(bytes32 programId) external view returns (Program memory) {
+        return programs[programId];
+    }
+}
